@@ -1,0 +1,201 @@
+<html lang="zh-CN">
+<!--
+********************************************************************
+FTP快速上传-Xoris
+最后更新于2014.11.8
+********************************************************************
+-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="FTP快速上传">
+        <meta name="author" content="Xoris">
+        <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+        <title>
+            FTP快速上传
+        </title>
+        <link rel="stylesheet" href="http://libs.baidu.com/bootstrap/3.2.0/css/bootstrap.min.css" type="text/css">
+        <script type="text/javascript" src="http://api.hitokoto.us/rand?encode=js&charset=utf-8">
+</script>
+        <style type="text/css">
+#hitokoto a {
+        color: #000;
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0px 10px;
+        text-shadow: 0px 0px 8px #000;
+        margin: 0px -15px;
+        padding: 4px 10px;
+        border: medium none;
+        transition: all 0.2s ease 0s;
+        margin: 0px;
+        text-align: center;
+        padding: 5px 0px;
+        display: block;
+        opacity: 1;
+        vertical-align: middle;
+        font-size: 15px;
+        }
+        </style>
+    </head>
+    <body>
+        
+        <div class="container">
+			<div  style="margin-top:60px;margin-bottom:10px;text-align:center;box-shadow: 5px 5px 40px rgba(0, 150, 255, 0.5);">
+		
+<?php
+/*****************************************************
+FTP快速上传-Xoris
+Hu60.cn
+2014.11.8
+-------------------------------
+$AppDir
+安装程序的总文件夹,里面包含安装程序,一个文件夹一种程序
+-------------------------------
+<select name="program" class="form-control">
+<option value="9gan">
+9gan php探针
+</option>
+<option value="aite_1_8">
+爱特文管 1.80经典版(较大 可能失败)
+</option>
+<option value="aite_new">
+爱特文管 最新版
+</option>
+<option value="fast_install">
+浪人程序快速安装工具(单文件)
+</option>
+value的值代表总文件夹下的指定程序文件夹
+例如浪人快速安装的值为fast_install
+$AppDir='install/'
+那么浪人快速安装的文件路径为 install/fast_install
+当然你可以稍微修改代码增加安全性.
+-------------------------------
+至于提交表单的安全性判断你们自己改吧.
+That's All :)
+*****************************************************/
+ini_set('display_errors', 'Off');
+ob_start();
+ob_end_clean();
+ob_implicit_flush(1);
+set_time_limit(0);
+
+$AppDir='';//安装程序存放的文件夹,格式为 install/
+
+function Ftp_Up($conn_id, $local_dir, $remote_dir) {
+	ftp_pasv($conn_id, true);
+	$dir = opendir($local_dir);
+	while ($file = readdir($dir)) {
+		if ($file != '.' && $file != '..') {
+			if (is_dir($local_dir . '/' . $file)) {
+				if (!@ftp_chdir($conn_id, $remote_dir . '/' . $file)) {
+					ftp_mkdir($conn_id, $remote_dir . '/' . $file);
+				}
+				Ftp_Up($conn_id, $local_dir . '/' . $file, $remote_dir . '/' . $file);
+			} else {
+				if (ftp_put($conn_id, $remote_dir . '/' . $file, $local_dir . '/' . $file, FTP_BINARY)) {
+					echo '<a class="list-group-item list-group-item-success" href="#">成功[' . $remote_dir . '/' . $file . ']</a>';
+				} else {
+					echo '<a class="list-group-item list-group-item-danger" href="#">失败[' . $remote_dir . '/' . $file . ']</a>';
+				}
+			}
+		}
+	}
+	closedir($dir);
+	ftp_close($conn_id);
+}
+if (isset($_POST['button']) && $_POST['ftp_server'] !== '' && $_POST['ftp_username'] !== '' && $_POST['ftp_password'] !== '' && $_POST['program'] !== '' && $_POST['ftp_address'] !== '') {
+	$server = $_POST['ftp_server'];
+	$username = $_POST['ftp_username'];
+	$password = $_POST['ftp_password'];
+	$program = $_POST['program'];
+	$address = $_POST['ftp_address'];
+	$conn_id = ftp_connect($server);
+	echo '<div class="panel panel-primary">
+ <div class="panel-heading">
+ <h3 class="panel-title">上传状态</h3>
+ </div>
+ <div class="panel-body">
+ <div class="list-group">';
+	if ($conn_id) {
+		echo '<a class="list-group-item list-group-item-success" href="#">连接ftp服务器成功</a>';
+		if (ftp_login($conn_id, $username, $password)) {
+			echo ' <a class="list-group-item list-group-item-success" href="#">登陆ftp服务器成功</a>';
+			Ftp_Up($conn_id, $AppDir . $program, $address);
+		} else {
+			echo '<a class="list-group-item list-group-item-danger" href="#">登陆ftp服务器失败，请检查输入信息是否准确</a>';
+		}
+	} else {
+		echo '<a class="list-group-item list-group-item-danger" href="#">连接ftp服务器失败，请检查输入信息是否准确</a>';
+	}
+	echo '
+</div>
+</div>
+</div>';
+} else {
+	echo '
+	<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h3 class="panel-title">
+					FTP快速上传
+				</h3>
+			</div>
+			<div class="panel-body">
+				<div class="list-group">
+					<form name="input" action="" method="post" role="form" id="input" />
+						<h2 class="form-signin-heading" style="text-align:center;">
+							FTP快速上传
+						</h2>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">FTP服务器</span> <input type="text" class="form-control" placeholder="可以是网址，也可以是ip地址，不要加http://" name="ftp_server">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">用户名</span> <input type="text" class="form-control" placeholder="Useradmin" name="ftp_username">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">密码</span> <input type="text" class="form-control" placeholder="Password" name="ftp_password">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">上传路径</span> <input type="text" class="form-control" placeholder="通常为public_html" value="/public_html/" name="ftp_address">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">上传程序</span>
+							<select name="program" class="form-control">
+								<option value="9gan">
+									9gan php探针
+								</option>
+								<option value="aite_1_8">
+									爱特文管 1.80经典版(较大 可能失败)
+								</option>
+								<option value="aite_new">
+									爱特文管 最新版
+								</option>
+								<option value="fast_install">
+									浪人程序快速安装工具(单文件)
+								</option>
+							</select>
+						</div><br>
+						<button type="submit" class="btn btn-success btn-lg btn-block" name="button">---上传---</button>
+					</form>
+				</div>
+			</div>
+		</div>';
+}
+?>
+				<div class="list-group">
+					<div class="list-group-item">
+						<div id="hitokoto">
+							<script type="text/javascript">
+hitokoto()
+							</script>
+						</div>
+						<div style="text-align:right;">
+							Powered by Xoris, Version: V0.31, Based on <a href="http://getbootstrap.com">Bootstrap</a>,Host By <a href="http://openshift.com">OpenShift</a>.
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+    </body>
+</html>
